@@ -4,6 +4,9 @@ import pandas as pd
 from datetime import datetime
 import plotly.express as px
 
+if "login" not in st.session_state:
+    st.session_state["login"] = False
+
 # ==============================
 # 🔌 CONEXIÓN A SUPABASE
 # ==============================
