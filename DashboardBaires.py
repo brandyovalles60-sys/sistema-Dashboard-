@@ -23,20 +23,19 @@ def conectar():
 # 🔐 LOGIN
 # ==============================
 
-if "login" not in st.session_state:
-    st.session_state.login = False
-
 def login():
     st.image("logo.png", width=200)
     st.title("🔐 Iniciar Sesión")
 
-    usuario = st.text_input("Usuario", key="login_usuario_unique")
-    clave = st.text_input("Contraseña", type="password", key="login_clave_unique")
+    with st.form("login_form"):
+        usuario = st.text_input("Usuario", key="login_usuario_unique")
+        clave = st.text_input("Contraseña", type="password", key="login_clave_unique")
 
-    if st.button("Entrar", key="login_btn_unique"):
+        submit = st.form_submit_button("Entrar")
+
+    if submit:
         conn = conectar()
 
-        # 🔥 VALIDACIÓN IMPORTANTE
         if conn is None:
             st.stop()
 
@@ -53,7 +52,7 @@ def login():
             if result:
                 st.session_state["login"] = True
                 st.success(f"¡Bienvenido, {usuario}!")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrecta")
 
