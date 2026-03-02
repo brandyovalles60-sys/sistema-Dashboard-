@@ -53,7 +53,7 @@ def login():
             if result:
                 st.session_state["login"] = True
                 st.success(f"¡Bienvenido, {usuario}!")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrecta")
 
@@ -147,7 +147,7 @@ def dashboard():
                 conn.commit()
 
                 st.success("Pago registrado correctamente")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Cliente no encontrado")
 
