@@ -60,7 +60,6 @@ def login():
             st.error(f"Error durante el login: {e}")
             conn.close()
 
-
 # ==============================
 # 📊 DASHBOARD
 # ==============================
