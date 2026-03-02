@@ -205,7 +205,7 @@ def dashboard():
 # 🚀 MAIN
 # ==============================
 
-if not st.session_state["login"]:
+if not st.session_state.get("login", False):
     login()
 else:
     dashboard()
