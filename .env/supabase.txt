@@ -1,0 +1,2 @@
+SUPABASE_URL=https://db.keqyexhbucfprmqsapwi.supabase.co
+SUPABASE_KEY=TU_SERVICE_KEY
