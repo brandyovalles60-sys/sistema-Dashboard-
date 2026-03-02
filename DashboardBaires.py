@@ -18,11 +18,11 @@ def conectar():
         st.error(f"Error al conectar con la base de datos: {e}")
         return None
 
+
 # ==============================
 # 🔐 LOGIN
 # ==============================
 
-# Inicializar session_state si no existe
 if "login" not in st.session_state:
     st.session_state.login = False
 
@@ -30,13 +30,17 @@ def login():
     st.image("logo.png", width=200)
     st.title("🔐 Iniciar Sesión")
 
-    # Keys únicas para evitar errores de duplicado
     usuario = st.text_input("Usuario", key="login_usuario_unique")
     clave = st.text_input("Contraseña", type="password", key="login_clave_unique")
 
     if st.button("Entrar", key="login_btn_unique"):
+        conn = conectar()
+
+        # 🔥 VALIDACIÓN IMPORTANTE
+        if conn is None:
+            st.stop()
+
         try:
-            conn = conectar()
             cursor = conn.cursor()
 
             cursor.execute(
@@ -54,16 +58,9 @@ def login():
                 st.error("Usuario o contraseña incorrecta")
 
         except Exception as e:
-            st.error(f"Error al conectar con la base de datos: {e}")
+            st.error(f"Error durante el login: {e}")
+            conn.close()
 
-# ==============================
-# 🏠 PÁGINA PRINCIPAL
-# ==============================
-
-def main_page():
-    st.title("🏠 Página Principal")
-    st.write("¡Has iniciado sesión correctamente!")
-    st.write("Aquí puedes poner todo el contenido de tu app.")
 
 # ==============================
 # 📊 DASHBOARD
@@ -71,6 +68,11 @@ def main_page():
 
 def dashboard():
     conn = conectar()
+
+    # 🔥 VALIDACIÓN IMPORTANTE
+    if conn is None:
+        st.stop()
+
     cur = conn.cursor()
 
     query = """
@@ -129,59 +131,74 @@ def dashboard():
     monto_pago = st.number_input("Monto que pagó", min_value=0.0, key="monto_pago_unique")
 
     if st.button("Guardar Pago", key="guardar_pago_unique"):
-        cliente_id_query = "SELECT id FROM clientes WHERE nombre=%s"
-        cur.execute(cliente_id_query, (cliente_select,))
-        cliente_id = cur.fetchone()[0]
+        try:
+            cliente_id_query = "SELECT id FROM clientes WHERE nombre=%s"
+            cur.execute(cliente_id_query, (cliente_select,))
+            cliente_data = cur.fetchone()
 
-        insertar = """
-            INSERT INTO movimientos (cliente_id, tipo, monto, fecha)
-            VALUES (%s, 'pago', %s, %s)
-        """
-        cur.execute(insertar, (cliente_id, monto_pago, datetime.now()))
-        conn.commit()
+            if cliente_data:
+                cliente_id = cliente_data[0]
 
-        st.success("Pago registrado correctamente")
-        st.experimental_rerun()
+                insertar = """
+                    INSERT INTO movimientos (cliente_id, tipo, monto, fecha)
+                    VALUES (%s, 'pago', %s, %s)
+                """
+                cur.execute(insertar, (cliente_id, monto_pago, datetime.now()))
+                conn.commit()
+
+                st.success("Pago registrado correctamente")
+                st.experimental_rerun()
+            else:
+                st.error("Cliente no encontrado")
+
+        except Exception as e:
+            st.error(f"Error al registrar pago: {e}")
 
     st.subheader("📊 Estadísticas de Ventas")
-    diaria = """
-        SELECT SUM(monto) FROM movimientos
-        WHERE tipo='venta' AND DATE(fecha)=CURRENT_DATE
-    """
-    cur.execute(diaria)
-    ventas_diarias = cur.fetchone()[0] or 0
 
-    semanal = """
-        SELECT SUM(monto) FROM movimientos
-        WHERE tipo='venta'
-        AND fecha >= date_trunc('week', CURRENT_DATE)
-    """
-    cur.execute(semanal)
-    ventas_semanales = cur.fetchone()[0] or 0
+    try:
+        diaria = """
+            SELECT SUM(monto) FROM movimientos
+            WHERE tipo='venta' AND DATE(fecha)=CURRENT_DATE
+        """
+        cur.execute(diaria)
+        ventas_diarias = cur.fetchone()[0] or 0
 
-    mensual_query = """
-        SELECT SUM(monto) FROM movimientos
-        WHERE tipo='venta'
-        AND fecha >= date_trunc('month', CURRENT_DATE)
-    """
-    cur.execute(mensual_query)
-    ventas_mensuales = cur.fetchone()[0] or 0
+        semanal = """
+            SELECT SUM(monto) FROM movimientos
+            WHERE tipo='venta'
+            AND fecha >= date_trunc('week', CURRENT_DATE)
+        """
+        cur.execute(semanal)
+        ventas_semanales = cur.fetchone()[0] or 0
 
-    anual_query = """
-        SELECT SUM(monto) FROM movimientos
-        WHERE tipo='venta'
-        AND fecha >= date_trunc('year', CURRENT_DATE)
-    """
-    cur.execute(anual_query)
-    ventas_anuales = cur.fetchone()[0] or 0
+        mensual_query = """
+            SELECT SUM(monto) FROM movimientos
+            WHERE tipo='venta'
+            AND fecha >= date_trunc('month', CURRENT_DATE)
+        """
+        cur.execute(mensual_query)
+        ventas_mensuales = cur.fetchone()[0] or 0
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Hoy", f"${ventas_diarias:,.2f}")
-    c2.metric("Semana", f"${ventas_semanales:,.2f}")
-    c3.metric("Mes", f"${ventas_mensuales:,.2f}")
-    c4.metric("Año", f"${ventas_anuales:,.2f}")
+        anual_query = """
+            SELECT SUM(monto) FROM movimientos
+            WHERE tipo='venta'
+            AND fecha >= date_trunc('year', CURRENT_DATE)
+        """
+        cur.execute(anual_query)
+        ventas_anuales = cur.fetchone()[0] or 0
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Hoy", f"${ventas_diarias:,.2f}")
+        c2.metric("Semana", f"${ventas_semanales:,.2f}")
+        c3.metric("Mes", f"${ventas_mensuales:,.2f}")
+        c4.metric("Año", f"${ventas_anuales:,.2f}")
+
+    except Exception as e:
+        st.error(f"Error en estadísticas: {e}")
 
     conn.close()
+
 
 # ==============================
 # 🚀 MAIN
